@@ -28,13 +28,5 @@ outputs:
     value: ${{ steps.compute.outputs.hasNextVersion }}
 
 runs:
-  using: 'composite'
-  steps:
-    - name: Compute next version
-      id: compute
-      shell: bash
-      env:
-        INPUT_PREFIX: ${{ inputs.prefix }}
-        INPUT_SRC: ${{ inputs.src }}
-        INPUT_IGNORE: ${{ inputs.ignore }}
-      run: bash "${{ github.action_path }}/get-next-version.sh"
+  using: 'node20'
+  main: 'dist/index.js'
