@@ -81,6 +81,16 @@ out
 # Nuxt.js build / generate output
 .nuxt
 
+# Intermediate tsc output (only ncc-bundled dist/index.js is needed)
+dist/*.d.ts
+dist/*.d.ts.map
+dist/main.js
+dist/main.js.map
+dist/get-next-version.js
+dist/get-next-version.js.map
+dist/get-next-version.test.js
+dist/get-next-version.test.js.map
+
 # Gatsby files
 .cache/
 # Comment in the public line in if your project uses Gatsby and not Next.js
