@@ -1,0 +1,40 @@
+name: 'Get Next Version'
+description: 'Calculate the next version number based on git tags and source code changes.'
+author: 'Igor Bari'
+
+branding:
+  icon: 'tag'
+  color: 'blue'
+
+inputs:
+  prefix:
+    description: 'Tag prefix (e.g. "v" produces tags like v-1, v-2)'
+    required: true
+  src:
+    description: 'Source directory to check for changes'
+    required: false
+    default: '.'
+  ignore:
+    description: 'Space-separated list of paths to ignore when detecting changes'
+    required: false
+    default: ''
+
+outputs:
+  version:
+    description: 'The next version number (empty if no changes detected)'
+    value: ${{ steps.compute.outputs.version }}
+  hasNextVersion:
+    description: 'Whether a new version should be released (true/false)'
+    value: ${{ steps.compute.outputs.hasNextVersion }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Compute next version
+      id: compute
+      shell: bash
+      env:
+        INPUT_PREFIX: ${{ inputs.prefix }}
+        INPUT_SRC: ${{ inputs.src }}
+        INPUT_IGNORE: ${{ inputs.ignore }}
+      run: bash "${{ github.action_path }}/get-next-version.sh"
