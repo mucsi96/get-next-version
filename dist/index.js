@@ -133,7 +133,10 @@ const core = __importStar(__nccwpck_require__(7484));
 const child_process_1 = __nccwpck_require__(5317);
 const get_next_version_1 = __nccwpck_require__(4574);
 // Ensure we have the full history and all tags
-(0, child_process_1.spawnSync)("git", ["fetch", "--tags", "--unshallow"], { stdio: "inherit" });
+const unshallow = (0, child_process_1.spawnSync)("git", ["fetch", "--tags", "--unshallow"], { stdio: "inherit" });
+if (unshallow.status !== 0) {
+    (0, child_process_1.spawnSync)("git", ["fetch", "--tags"], { stdio: "inherit" });
+}
 const prefix = core.getInput("prefix", { required: true });
 const src = core.getInput("src") || ".";
 const ignore = core.getInput("ignore")
