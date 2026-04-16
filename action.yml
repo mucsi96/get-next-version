@@ -21,8 +21,11 @@ inputs:
 
 outputs:
   version:
-    description: 'The next version tag including prefix (e.g. "v-2", empty if no changes detected)'
+    description: 'The next version number (empty if no changes detected)'
     value: ${{ steps.compute.outputs.version }}
+  tag:
+    description: 'The next version tag including prefix (e.g. "v-2", empty if no changes detected)'
+    value: ${{ steps.compute.outputs.tag }}
   hasNextVersion:
     description: 'Whether a new version should be released (true/false)'
     value: ${{ steps.compute.outputs.hasNextVersion }}

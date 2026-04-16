@@ -18,8 +18,10 @@ const version = getVersion({ src, tagPrefix: prefix, ignore });
 
 if (version === null) {
   core.setOutput("version", "");
+  core.setOutput("tag", "");
   core.setOutput("hasNextVersion", "false");
 } else {
-  core.setOutput("version", `${prefix}-${version}`);
+  core.setOutput("version", version.toString());
+  core.setOutput("tag", `${prefix}-${version}`);
   core.setOutput("hasNextVersion", "true");
 }

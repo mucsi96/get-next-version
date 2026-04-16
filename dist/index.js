@@ -145,10 +145,12 @@ const ignore = core.getInput("ignore")
 const version = (0, get_next_version_1.getVersion)({ src, tagPrefix: prefix, ignore });
 if (version === null) {
     core.setOutput("version", "");
+    core.setOutput("tag", "");
     core.setOutput("hasNextVersion", "false");
 }
 else {
-    core.setOutput("version", `${prefix}-${version}`);
+    core.setOutput("version", version.toString());
+    core.setOutput("tag", `${prefix}-${version}`);
     core.setOutput("hasNextVersion", "true");
 }
 //# sourceMappingURL=main.js.map

@@ -30,6 +30,7 @@ if [[ -n "$PREV_TAG" ]]; then
     echo "No changes detected since ${PREFIX}:${VERSION} in ${SRC}."
     {
       echo "version="
+      echo "tag="
       echo "hasNextVersion=false"
     } >> "${GITHUB_OUTPUT:-/dev/null}"
     exit 0
@@ -49,6 +50,7 @@ fi
 echo "Changes detected for ${PREFIX}. New version: ${NEW_VERSION}"
 
 {
-  echo "version=${PREFIX}-${NEW_VERSION}"
+  echo "version=${NEW_VERSION}"
+  echo "tag=${PREFIX}-${NEW_VERSION}"
   echo "hasNextVersion=true"
 } >> "${GITHUB_OUTPUT:-/dev/null}"
