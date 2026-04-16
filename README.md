@@ -21,7 +21,7 @@ A GitHub Action that calculates the next version number based on git tags and so
 
 - name: Create release
   if: steps.get_next_version.outputs.hasNextVersion == 'true'
-  run: echo "Releasing version ${{ steps.get_next_version.outputs.version }}"
+  run: gh release create ${{ steps.get_next_version.outputs.version }}
 ```
 
 ### With source directory and ignore paths
@@ -48,7 +48,7 @@ A GitHub Action that calculates the next version number based on git tags and so
 
 | Output           | Description                                              |
 | ---------------- | -------------------------------------------------------- |
-| `version`        | The next version number (empty if no changes detected)   |
+| `version`        | The next version tag including prefix, e.g. `v-2` (empty if no changes detected) |
 | `hasNextVersion` | `true` if a new version should be released, else `false` |
 
 ## Tag format
