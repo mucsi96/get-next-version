@@ -40,18 +40,19 @@ run_action() {
 }
 
 assert_output() {
-  local label="$1" expected_version="$2" expected_has="$3" output="$4"
-  local actual_version actual_has
+  local label="$1" expected_version="$2" expected_tag="$3" expected_has="$4" output="$5"
+  local actual_version actual_tag actual_has
   actual_version=$(echo "$output" | grep '^version=' | cut -d= -f2)
+  actual_tag=$(echo "$output" | grep '^tag=' | cut -d= -f2)
   actual_has=$(echo "$output" | grep '^hasNextVersion=' | cut -d= -f2)
 
-  if [[ "$actual_version" == "$expected_version" && "$actual_has" == "$expected_has" ]]; then
+  if [[ "$actual_version" == "$expected_version" && "$actual_tag" == "$expected_tag" && "$actual_has" == "$expected_has" ]]; then
     echo "  PASS: $label"
     PASS=$((PASS + 1))
   else
     echo "  FAIL: $label"
-    echo "    expected version=$expected_version hasNextVersion=$expected_has"
-    echo "    got      version=$actual_version hasNextVersion=$actual_has"
+    echo "    expected version=$expected_version tag=$expected_tag hasNextVersion=$expected_has"
+    echo "    got      version=$actual_version tag=$actual_tag hasNextVersion=$actual_has"
     FAIL=$((FAIL + 1))
   fi
 }
@@ -67,14 +68,14 @@ commit() {
 echo "=== Test 1: No tags → version 1 ==="
 setup_repo
 OUT=$(run_action "app")
-assert_output "no tags, first version" "1" "true" "$OUT"
+assert_output "no tags, first version" "1" "app-1" "true" "$OUT"
 cleanup_repo
 
 echo "=== Test 2: Tag exists, no changes → no next version ==="
 setup_repo
 git tag "app-1"
 OUT=$(run_action "app")
-assert_output "tag exists, no changes" "" "false" "$OUT"
+assert_output "tag exists, no changes" "" "" "false" "$OUT"
 cleanup_repo
 
 echo "=== Test 3: Tag exists, new commits → next version ==="
@@ -82,7 +83,7 @@ setup_repo
 git tag "app-1"
 commit "add feature"
 OUT=$(run_action "app")
-assert_output "tag 1, new commit" "2" "true" "$OUT"
+assert_output "tag 1, new commit" "2" "app-2" "true" "$OUT"
 cleanup_repo
 
 echo "=== Test 4: Multiple tags, picks highest ==="
@@ -94,7 +95,7 @@ commit "third"
 git tag "app-3"
 commit "fourth"
 OUT=$(run_action "app")
-assert_output "highest tag is 3" "4" "true" "$OUT"
+assert_output "highest tag is 3" "4" "app-4" "true" "$OUT"
 cleanup_repo
 
 echo "=== Test 5: Different prefix ==="
@@ -102,7 +103,7 @@ setup_repo
 git tag "v-1"
 commit "add feature"
 OUT=$(run_action "v")
-assert_output "prefix v" "2" "true" "$OUT"
+assert_output "prefix v" "2" "v-2" "true" "$OUT"
 cleanup_repo
 
 echo "=== Test 6: Prefix ignores non-matching tags ==="
@@ -111,7 +112,7 @@ git tag "other-10"
 git tag "v-2"
 commit "something"
 OUT=$(run_action "v")
-assert_output "prefix v ignores other-10" "3" "true" "$OUT"
+assert_output "prefix v ignores other-10" "3" "v-3" "true" "$OUT"
 cleanup_repo
 
 echo "=== Test 7: src directory scoping ==="
@@ -122,7 +123,7 @@ echo "readme" > docs/readme.txt
 git add .
 git commit --no-gpg-sign -m "update docs"
 OUT=$(run_action "app" "src")
-assert_output "only docs changed, src unchanged" "" "false" "$OUT"
+assert_output "only docs changed, src unchanged" "" "" "false" "$OUT"
 cleanup_repo
 
 echo "=== Test 8: src directory scoping with actual changes ==="
@@ -130,7 +131,7 @@ setup_repo
 git tag "app-1"
 commit "change source"
 OUT=$(run_action "app" "src")
-assert_output "src changed" "2" "true" "$OUT"
+assert_output "src changed" "2" "app-2" "true" "$OUT"
 cleanup_repo
 
 echo "=== Test 9: ignore paths ==="
@@ -140,7 +141,7 @@ echo "generated" > src/generated.txt
 git add .
 git commit --no-gpg-sign -m "update generated file"
 OUT=$(run_action "app" "." "src/generated.txt")
-assert_output "ignored file changed" "" "false" "$OUT"
+assert_output "ignored file changed" "" "" "false" "$OUT"
 cleanup_repo
 
 # ─── Summary ──────────────────────────────────────────────────────────────────
