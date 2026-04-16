@@ -67,7 +67,7 @@ commit() {
 echo "=== Test 1: No tags → version 1 ==="
 setup_repo
 OUT=$(run_action "app")
-assert_output "no tags, first version" "app-1" "true" "$OUT"
+assert_output "no tags, first version" "1" "true" "$OUT"
 cleanup_repo
 
 echo "=== Test 2: Tag exists, no changes → no next version ==="
@@ -82,7 +82,7 @@ setup_repo
 git tag "app-1"
 commit "add feature"
 OUT=$(run_action "app")
-assert_output "tag 1, new commit" "app-2" "true" "$OUT"
+assert_output "tag 1, new commit" "2" "true" "$OUT"
 cleanup_repo
 
 echo "=== Test 4: Multiple tags, picks highest ==="
@@ -94,7 +94,7 @@ commit "third"
 git tag "app-3"
 commit "fourth"
 OUT=$(run_action "app")
-assert_output "highest tag is 3" "app-4" "true" "$OUT"
+assert_output "highest tag is 3" "4" "true" "$OUT"
 cleanup_repo
 
 echo "=== Test 5: Different prefix ==="
@@ -102,7 +102,7 @@ setup_repo
 git tag "v-1"
 commit "add feature"
 OUT=$(run_action "v")
-assert_output "prefix v" "v-2" "true" "$OUT"
+assert_output "prefix v" "2" "true" "$OUT"
 cleanup_repo
 
 echo "=== Test 6: Prefix ignores non-matching tags ==="
@@ -111,7 +111,7 @@ git tag "other-10"
 git tag "v-2"
 commit "something"
 OUT=$(run_action "v")
-assert_output "prefix v ignores other-10" "v-3" "true" "$OUT"
+assert_output "prefix v ignores other-10" "3" "true" "$OUT"
 cleanup_repo
 
 echo "=== Test 7: src directory scoping ==="
@@ -130,7 +130,7 @@ setup_repo
 git tag "app-1"
 commit "change source"
 OUT=$(run_action "app" "src")
-assert_output "src changed" "app-2" "true" "$OUT"
+assert_output "src changed" "2" "true" "$OUT"
 cleanup_repo
 
 echo "=== Test 9: ignore paths ==="
