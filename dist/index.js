@@ -148,7 +148,7 @@ if (version === null) {
     core.setOutput("hasNextVersion", "false");
 }
 else {
-    core.setOutput("version", version.toString());
+    core.setOutput("version", `${prefix}-${version}`);
     core.setOutput("hasNextVersion", "true");
 }
 //# sourceMappingURL=main.js.map
