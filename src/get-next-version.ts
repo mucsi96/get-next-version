@@ -79,7 +79,10 @@ export function getVersion(options: {
   src: string;
   tagPrefix: string;
   ignore?: string[];
-}): number | null {
+}): {
+  version: number;
+  hasNextVersion: boolean;
+} {
   const { src, tagPrefix, ignore = [] } = options;
 
   const prevTag = getPreviousTag(tagPrefix);
@@ -90,7 +93,7 @@ export function getVersion(options: {
       console.log(
         `No changes detected since ${tagPrefix}:${version} in ${src}.`
       );
-      return null;
+      return { version: parseInt(version, 10), hasNextVersion: false };
     }
   }
 
@@ -105,7 +108,7 @@ export function getVersion(options: {
 
   console.log(`Changes detected for ${tagPrefix}. New version: ${newVersion}`);
 
-  return newVersion;
+  return { version: newVersion, hasNextVersion: true };
 }
 
 export function setVersion(tagPrefix: string, version: number): void {

@@ -169,13 +169,13 @@ describe("getVersion", () => {
       mockSpawnResult({ stdout: "", status: 0 })
     );
 
-    expect(getVersion({ src: ".", tagPrefix: "app" })).toBe(1);
+    expect(getVersion({ src: ".", tagPrefix: "app" })).toEqual({ version: 1, hasNextVersion: true });
     expect(console.log).toHaveBeenCalledWith(
       "Changes detected for app. New version: 1"
     );
   });
 
-  it("returns null when tag exists and no changes detected", () => {
+  it("returns the current version without publishing when no changes detected", () => {
     // getPreviousTag
     mockedSpawnSync.mockReturnValueOnce(
       mockSpawnResult({ stdout: "app-1\n" })
@@ -183,7 +183,7 @@ describe("getVersion", () => {
     // hasSourceCodeChanged - no diff output
     mockedSpawnSync.mockReturnValueOnce(mockSpawnResult({ stdout: "" }));
 
-    expect(getVersion({ src: ".", tagPrefix: "app" })).toBeNull();
+    expect(getVersion({ src: ".", tagPrefix: "app" })).toEqual({ version: 1, hasNextVersion: false });
     expect(console.log).toHaveBeenCalledWith(
       "No changes detected since app:1 in .."
     );
@@ -203,7 +203,7 @@ describe("getVersion", () => {
       mockSpawnResult({ stdout: "app-1\n" })
     );
 
-    expect(getVersion({ src: ".", tagPrefix: "app" })).toBe(2);
+    expect(getVersion({ src: ".", tagPrefix: "app" })).toEqual({ version: 2, hasNextVersion: true });
   });
 
   it("picks highest version from multiple tags", () => {
@@ -220,7 +220,7 @@ describe("getVersion", () => {
       mockSpawnResult({ stdout: "app-3\napp-2\napp-1\n" })
     );
 
-    expect(getVersion({ src: ".", tagPrefix: "app" })).toBe(4);
+    expect(getVersion({ src: ".", tagPrefix: "app" })).toEqual({ version: 4, hasNextVersion: true });
   });
 
   it("uses different prefix correctly", () => {
@@ -237,7 +237,7 @@ describe("getVersion", () => {
       mockSpawnResult({ stdout: "v-1\n" })
     );
 
-    expect(getVersion({ src: ".", tagPrefix: "v" })).toBe(2);
+    expect(getVersion({ src: ".", tagPrefix: "v" })).toEqual({ version: 2, hasNextVersion: true });
   });
 
   it("ignores non-matching prefix tags", () => {
@@ -254,10 +254,10 @@ describe("getVersion", () => {
       mockSpawnResult({ stdout: "v-2\n" })
     );
 
-    expect(getVersion({ src: ".", tagPrefix: "v" })).toBe(3);
+    expect(getVersion({ src: ".", tagPrefix: "v" })).toEqual({ version: 3, hasNextVersion: true });
   });
 
-  it("returns null when src directory has no changes", () => {
+  it("returns the current version when src directory has no changes", () => {
     // getPreviousTag
     mockedSpawnSync.mockReturnValueOnce(
       mockSpawnResult({ stdout: "app-1\n" })
@@ -265,7 +265,7 @@ describe("getVersion", () => {
     // hasSourceCodeChanged - no changes in src dir
     mockedSpawnSync.mockReturnValueOnce(mockSpawnResult({ stdout: "" }));
 
-    expect(getVersion({ src: "src", tagPrefix: "app" })).toBeNull();
+    expect(getVersion({ src: "src", tagPrefix: "app" })).toEqual({ version: 1, hasNextVersion: false });
   });
 
   it("returns next version when src directory has changes", () => {
@@ -282,10 +282,10 @@ describe("getVersion", () => {
       mockSpawnResult({ stdout: "app-1\n" })
     );
 
-    expect(getVersion({ src: "src", tagPrefix: "app" })).toBe(2);
+    expect(getVersion({ src: "src", tagPrefix: "app" })).toEqual({ version: 2, hasNextVersion: true });
   });
 
-  it("returns null when only ignored files changed", () => {
+  it("returns the current version when only ignored files changed", () => {
     // getPreviousTag
     mockedSpawnSync.mockReturnValueOnce(
       mockSpawnResult({ stdout: "app-1\n" })
@@ -299,7 +299,7 @@ describe("getVersion", () => {
         tagPrefix: "app",
         ignore: ["src/generated.txt"],
       })
-    ).toBeNull();
+    ).toEqual({ version: 1, hasNextVersion: false });
   });
 });
 
