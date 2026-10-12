@@ -21,14 +21,11 @@ inputs:
 
 outputs:
   version:
-    description: 'The next version number (empty if no changes detected)'
-    value: ${{ steps.compute.outputs.version }}
+    description: 'The next version number when changed, or the current reachable release version when unchanged'
   tag:
-    description: 'The next version tag including prefix (e.g. "v-2", empty if no changes detected)'
-    value: ${{ steps.compute.outputs.tag }}
+    description: 'The selected version tag including prefix (e.g. "v-2")'
   hasNextVersion:
     description: 'Whether a new version should be released (true/false)'
-    value: ${{ steps.compute.outputs.hasNextVersion }}
 
 runs:
   using: 'node20'

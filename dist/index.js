@@ -67,7 +67,7 @@ function getVersion(options) {
         if (hasSourceCodeChanged(src, prevTag, ignore) === false) {
             const version = prevTag.replace(new RegExp(`^${tagPrefix}-`), "");
             console.log(`No changes detected since ${tagPrefix}:${version} in ${src}.`);
-            return null;
+            return { version: parseInt(version, 10), hasNextVersion: false };
         }
     }
     const latestVersion = getLatestVersion(tagPrefix);
@@ -79,7 +79,7 @@ function getVersion(options) {
         newVersion = 1;
     }
     console.log(`Changes detected for ${tagPrefix}. New version: ${newVersion}`);
-    return newVersion;
+    return { version: newVersion, hasNextVersion: true };
 }
 function setVersion(tagPrefix, version) {
     console.log(`Tagging with ${tagPrefix}-${version}`);
@@ -142,17 +142,10 @@ const src = core.getInput("src") || ".";
 const ignore = core.getInput("ignore")
     ? core.getInput("ignore").split(" ").filter(Boolean)
     : [];
-const version = (0, get_next_version_1.getVersion)({ src, tagPrefix: prefix, ignore });
-if (version === null) {
-    core.setOutput("version", "");
-    core.setOutput("tag", "");
-    core.setOutput("hasNextVersion", "false");
-}
-else {
-    core.setOutput("version", version.toString());
-    core.setOutput("tag", `${prefix}-${version}`);
-    core.setOutput("hasNextVersion", "true");
-}
+const { version, hasNextVersion } = (0, get_next_version_1.getVersion)({ src, tagPrefix: prefix, ignore });
+core.setOutput("version", version.toString());
+core.setOutput("tag", `${prefix}-${version}`);
+core.setOutput("hasNextVersion", hasNextVersion.toString());
 //# sourceMappingURL=main.js.map
 
 /***/ }),
