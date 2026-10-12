@@ -1,0 +1,13 @@
+[package]
+name = "get-next-version"
+version = "1.0.0"
+edition = "2021"
+rust-version = "1.85"
+description = "Calculate the next version number from Git tags and source changes"
+license = "MIT"
+repository = "https://github.com/mucsi96/get-next-version"
+
+[profile.release]
+lto = true
+codegen-units = 1
+strip = true
