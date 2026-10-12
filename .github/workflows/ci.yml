@@ -20,7 +20,7 @@ jobs:
           components: rustfmt, clippy
       - run: cargo fmt --check
       - run: cargo clippy --locked --offline --all-targets -- -D warnings
-      - run: bash -n scripts/*.sh
+      - run: for script in scripts/*.sh; do bash -n "$script"; done
 
   test:
     strategy:
