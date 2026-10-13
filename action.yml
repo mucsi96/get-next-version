@@ -22,11 +22,25 @@ inputs:
 outputs:
   version:
     description: 'The next version number when changed, or the current reachable release version when unchanged'
+    value: ${{ steps.compute.outputs.version }}
   tag:
     description: 'The selected version tag including prefix (e.g. "v-2")'
+    value: ${{ steps.compute.outputs.tag }}
   hasNextVersion:
     description: 'Whether a new version should be released (true/false)'
+    value: ${{ steps.compute.outputs.hasNextVersion }}
 
 runs:
-  using: 'node20'
-  main: 'dist/index.js'
+  using: 'composite'
+  steps:
+    - name: Calculate version with bundled Rust binary
+      id: compute
+      shell: bash
+      env:
+        INPUT_PREFIX: ${{ inputs.prefix }}
+        INPUT_SRC: ${{ inputs.src }}
+        INPUT_IGNORE: ${{ inputs.ignore }}
+        ACTION_PATH: ${{ github.action_path }}
+        ACTION_RUNNER_OS: ${{ runner.os }}
+        ACTION_RUNNER_ARCH: ${{ runner.arch }}
+      run: bash "$ACTION_PATH/scripts/run.sh"

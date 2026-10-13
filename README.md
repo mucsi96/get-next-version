@@ -2,6 +2,9 @@
 
 A GitHub Action that calculates the next version number based on git tags and source code changes.
 
+The action is a composite action backed by bundled Rust binaries. Consumers do
+not need a Rust toolchain, Node.js, or a binary download at runtime.
+
 ## How it works
 
 1. Finds the previous tag reachable from HEAD matching `{prefix}-{N}`
@@ -13,6 +16,8 @@ A GitHub Action that calculates the next version number based on git tags and so
 ## Usage
 
 ```yaml
+- uses: actions/checkout@v4
+
 - name: Get next version
   id: get_next_version
   uses: mucsi96/get-next-version@main
@@ -35,6 +40,16 @@ A GitHub Action that calculates the next version number based on git tags and so
     src: 'src'
     ignore: 'src/generated docs'
 ```
+
+The action fetches tags and full history automatically, including when checkout
+is shallow. The checkout credentials must allow fetching from the repository.
+Local repositories without remotes are also supported when their history is
+complete. Git failures cause the action to fail instead of returning an incorrect
+version.
+
+`src` is a directory relative to the checkout. Ignore paths are Git pathspecs
+relative to the checkout, separated by whitespace. Each is passed as its own
+exclusion argument, so multiple ignored paths work together.
 
 ## Inputs
 
@@ -96,6 +111,45 @@ Tags follow the pattern `{prefix}-{N}` where `N` is a positive integer:
 
 - `v-1`, `v-2`, `v-3`, ...
 - `app-1`, `app-2`, `app-3`, ...
+
+Only positive integer release tags are considered. Tags such as `v-0`, `v-01`,
+and `v-2-beta` are ignored. Prefixes must form a valid Git tag name when followed
+by `-1`.
+
+## Supported runners
+
+| Runner OS | Architectures | Binary target |
+| --- | --- | --- |
+| Linux | x64, ARM64 | Statically linked musl |
+| macOS | x64, ARM64 | Native Darwin |
+| Windows | x64, ARM64 | Native MSVC |
+
+Git and Bash must be available (as they are on GitHub-hosted runners). The action
+selects a binary from `bin/` using the runner OS and architecture and executes it
+directly. Unsupported platforms fail with a clear error. All supported binaries
+are included in the published action repository.
+
+## Development and publishing
+
+Install the toolchain pinned in `rust-toolchain.toml`, then run:
+
+```bash
+cargo fmt --check
+cargo clippy --locked --offline --all-targets -- -D warnings
+cargo test --locked --offline
+```
+
+The implementation uses only the Rust standard library. Integration tests run the
+binary against real Git repositories, including shallow checkouts, unrelated
+release branches, component changes, ignored paths, and invalid inputs.
+
+CI builds and tests all six native targets, uploads packaged binaries, validates
+the committed binaries against their source manifests, and exercises the
+composite action's output forwarding on every supported runner. To refresh the
+bundled binaries after changing Rust source, follow [bin/README.md](bin/README.md).
+Commit the refreshed artifacts and require green CI before merging or publishing
+a release ref. Consumers then continue using the action with `uses:` and `with:`
+as shown above, with no build step on their runner.
 
 ## License
 

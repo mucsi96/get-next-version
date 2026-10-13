@@ -2,18 +2,115 @@ name: CI
 
 on:
   push:
-    branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
-  test:
+  lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: dtolnay/rust-toolchain@master
         with:
-          node-version: 20
-      - run: npm ci
-      - run: npm test
-      - run: npm run build
+          toolchain: '1.99.0'
+          components: rustfmt, clippy
+      - run: cargo fmt --check
+      - run: cargo clippy --locked --offline --all-targets -- -D warnings
+      - run: for script in scripts/*.sh; do bash -n "$script"; done
+
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            target: x86_64-unknown-linux-musl
+            platform: linux-x64
+            suffix: ''
+          - runner: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-musl
+            platform: linux-arm64
+            suffix: ''
+          - runner: macos-15-intel
+            target: x86_64-apple-darwin
+            platform: macos-x64
+            suffix: ''
+          - runner: macos-14
+            target: aarch64-apple-darwin
+            platform: macos-arm64
+            suffix: ''
+          - runner: windows-2025
+            target: x86_64-pc-windows-msvc
+            platform: windows-x64
+            suffix: '.exe'
+          - runner: windows-11-arm
+            target: aarch64-pc-windows-msvc
+            platform: windows-arm64
+            suffix: '.exe'
+    runs-on: ${{ matrix.runner }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: '1.99.0'
+          targets: ${{ matrix.target }}
+      - name: Install musl linker
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y musl-tools
+      - name: Test Rust implementation
+        run: cargo test --locked --offline --target "${{ matrix.target }}"
+      - name: Build and package native binary
+        run: bash scripts/package.sh "${{ matrix.target }}" "${{ matrix.platform }}" "${{ matrix.suffix }}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: binary-${{ matrix.platform }}
+          path: bin/get-next-version-${{ matrix.platform }}*
+          if-no-files-found: error
+      - name: Restore committed binaries for consumer tests
+        run: git restore bin
+      - name: Check bundled binary source manifests
+        run: bash scripts/check-binaries.sh
+      - name: Test committed native binary
+        env:
+          ACTION_BINARY: ${{ github.workspace }}/bin/get-next-version-${{ matrix.platform }}${{ matrix.suffix }}
+        run: cargo test --locked --offline --target "${{ matrix.target }}"
+      - name: Prepare composite smoke test
+        run: |
+          prefix="ci-${{ runner.os }}-${{ runner.arch }}-${{ github.run_id }}"
+          echo "SMOKE_PREFIX=$prefix" >> "$GITHUB_ENV"
+      - name: Test first version through composite action
+        id: first
+        uses: ./
+        with:
+          prefix: ${{ env.SMOKE_PREFIX }}
+      - name: Check first-version outputs and create reachable tag
+        env:
+          VERSION: ${{ steps.first.outputs.version }}
+          TAG: ${{ steps.first.outputs.tag }}
+          HAS_NEXT: ${{ steps.first.outputs.hasNextVersion }}
+        run: |
+          test "$VERSION" = '1'
+          test "$TAG" = "$SMOKE_PREFIX-1"
+          test "$HAS_NEXT" = 'true'
+          git tag "$SMOKE_PREFIX-42"
+      - name: Test unchanged version through composite action
+        id: unchanged
+        uses: ./
+        with:
+          prefix: ${{ env.SMOKE_PREFIX }}
+      - name: Check unchanged-version outputs
+        env:
+          VERSION: ${{ steps.unchanged.outputs.version }}
+          TAG: ${{ steps.unchanged.outputs.tag }}
+          HAS_NEXT: ${{ steps.unchanged.outputs.hasNextVersion }}
+        run: |
+          test "$VERSION" = '42'
+          test "$TAG" = "$SMOKE_PREFIX-42"
+          test "$HAS_NEXT" = 'false'
