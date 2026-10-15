@@ -114,3 +114,34 @@ jobs:
           test "$VERSION" = '42'
           test "$TAG" = "$SMOKE_PREFIX-42"
           test "$HAS_NEXT" = 'false'
+      - name: Test suffixed first version through composite action
+        id: chart-first
+        uses: ./
+        with:
+          prefix: ${{ env.SMOKE_PREFIX }}-chart
+          suffix: '.0.0'
+      - name: Check suffixed outputs and create reachable chart tag
+        env:
+          VERSION: ${{ steps.chart-first.outputs.version }}
+          TAG: ${{ steps.chart-first.outputs.tag }}
+          HAS_NEXT: ${{ steps.chart-first.outputs.hasNextVersion }}
+        run: |
+          test "$VERSION" = '1'
+          test "$TAG" = "$SMOKE_PREFIX-chart-1.0.0"
+          test "$HAS_NEXT" = 'true'
+          git tag "$SMOKE_PREFIX-chart-22.0.0"
+      - name: Test unchanged suffixed version through composite action
+        id: chart-unchanged
+        uses: ./
+        with:
+          prefix: ${{ env.SMOKE_PREFIX }}-chart
+          suffix: '.0.0'
+      - name: Check unchanged suffixed outputs
+        env:
+          VERSION: ${{ steps.chart-unchanged.outputs.version }}
+          TAG: ${{ steps.chart-unchanged.outputs.tag }}
+          HAS_NEXT: ${{ steps.chart-unchanged.outputs.hasNextVersion }}
+        run: |
+          test "$VERSION" = '22'
+          test "$TAG" = "$SMOKE_PREFIX-chart-22.0.0"
+          test "$HAS_NEXT" = 'false'
