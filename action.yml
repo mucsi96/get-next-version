@@ -10,6 +10,10 @@ inputs:
   prefix:
     description: 'Tag prefix (e.g. "v" produces tags like v-1, v-2)'
     required: true
+  suffix:
+    description: 'Literal release-tag suffix (e.g. ".0.0" for chart-1.0.0); legacy integer tags remain recognized'
+    required: false
+    default: ''
   src:
     description: 'Source directory to check for changes'
     required: false
@@ -24,7 +28,7 @@ outputs:
     description: 'The next version number when changed, or the current reachable release version when unchanged'
     value: ${{ steps.compute.outputs.version }}
   tag:
-    description: 'The selected version tag including prefix (e.g. "v-2")'
+    description: 'Selected existing release tag when unchanged, or prefix-counter-suffix tag for a new release'
     value: ${{ steps.compute.outputs.tag }}
   hasNextVersion:
     description: 'Whether a new version should be released (true/false)'
@@ -38,6 +42,7 @@ runs:
       shell: bash
       env:
         INPUT_PREFIX: ${{ inputs.prefix }}
+        INPUT_SUFFIX: ${{ inputs.suffix }}
         INPUT_SRC: ${{ inputs.src }}
         INPUT_IGNORE: ${{ inputs.ignore }}
         ACTION_PATH: ${{ github.action_path }}

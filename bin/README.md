@@ -18,6 +18,9 @@ git commit -m "build: refresh bundled Rust binaries"
 git push
 ```
 
+The download helper stages all artifacts and checks their source manifests
+before replacing existing bundled files; failed downloads leave `bin/` intact.
+
 The initial CI run can fail its bundled-binary checks until the newly built
 artifacts are committed; the build and upload steps run before those checks.
 Require a green CI run before merging or publishing an action tag. Always publish

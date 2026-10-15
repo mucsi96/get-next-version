@@ -7,9 +7,9 @@ not need a Rust toolchain, Node.js, or a binary download at runtime.
 
 ## How it works
 
-1. Finds the previous tag reachable from HEAD matching `{prefix}-{N}`
+1. Finds the previous tag reachable from HEAD matching `{prefix}-{N}` or the configured `{prefix}-{N}{suffix}`
 2. If a tag exists, checks if source code has changed since that tag (using `git diff`)
-3. If no changes detected → return the existing version with `hasNextVersion=false`
+3. If no changes detected → return the existing version and actual existing tag with `hasNextVersion=false`
 4. If changes detected → next version = highest existing version + 1
 5. If no tags exist → version starts at 1
 
@@ -51,11 +51,37 @@ version.
 relative to the checkout, separated by whitespace. Each is passed as its own
 exclusion argument, so multiple ignored paths work together.
 
+### Helm chart tags
+
+Use a literal suffix for major-only SemVer chart releases:
+
+```yaml
+- name: Get chart version
+  id: chart
+  uses: mucsi96/get-next-version@main
+  with:
+    prefix: client-app
+    suffix: '.0.0'
+    src: charts/client_app
+```
+
+After a source change following `client-app-22.0.0`, outputs are `version=23`,
+`tag=client-app-23.0.0`, `hasNextVersion=true`. `version` remains the integer
+counter, so chart metadata can use `${{ steps.chart.outputs.version }}.0.0`.
+The default empty suffix preserves existing integer-tag consumers.
+
+Suffix mode also recognizes legacy integer tags when finding the prior release
+and global maximum. For unchanged source, `tag` is the actual reachable tag:
+an unchanged legacy `client-app-14` remains `client-app-14`, while an unchanged
+`client-app-22.0.0` remains `client-app-22.0.0`. New releases always use the
+configured suffix. No tag aliases or additional tags are created by the action.
+
 ## Inputs
 
 | Input    | Description                                             | Required | Default |
 | -------- | ------------------------------------------------------- | -------- | ------- |
 | `prefix` | Tag prefix (e.g. `v` for tags like `v-1`, `v-2`)       | Yes      |         |
+| `suffix` | Literal suffix, e.g. `.0.0` for `client-app-23.0.0`; empty keeps integer mode | No | `''` |
 | `src`    | Source directory to check for changes                   | No       | `.`     |
 | `ignore` | Space-separated list of paths to ignore when detecting changes | No | `''`   |
 
@@ -64,7 +90,7 @@ exclusion argument, so multiple ignored paths work together.
 | Output           | Description                                              |
 | ---------------- | -------------------------------------------------------- |
 | `version`        | The next version number when changed, or the current reachable release version when unchanged |
-| `tag`            | The selected version tag including prefix, e.g. `v-2` |
+| `tag`            | Actual existing tag when unchanged; `prefix-counter-suffix` for a new release |
 | `hasNextVersion` | `true` if a new version should be released, else `false` |
 
 `version` and `tag` are always populated. Use `hasNextVersion` to decide whether
@@ -107,7 +133,7 @@ the existing global highest-version-plus-one calculation.
 
 ## Tag format
 
-Tags follow the pattern `{prefix}-{N}` where `N` is a positive integer:
+By default, tags follow `{prefix}-{N}` where `N` is a positive integer:
 
 - `v-1`, `v-2`, `v-3`, ...
 - `app-1`, `app-2`, `app-3`, ...
@@ -115,6 +141,12 @@ Tags follow the pattern `{prefix}-{N}` where `N` is a positive integer:
 Only positive integer release tags are considered. Tags such as `v-0`, `v-01`,
 and `v-2-beta` are ignored. Prefixes must form a valid Git tag name when followed
 by `-1`.
+
+With `suffix: '.0.0'`, exact tags such as `client-app-22.0.0` and legacy
+`client-app-14` are recognized; other suffixes/prereleases and leading-zero
+counters are ignored. A suffix is literal, must form a valid Git tag name and
+must not begin with a digit, keeping the counter unambiguous. The counter is
+still an integer; `.0.0` supplies the fixed minor/patch portion for charts.
 
 ## Supported runners
 

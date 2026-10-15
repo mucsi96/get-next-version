@@ -43,9 +43,15 @@ fn fetch_history() -> Result<()> {
     Ok(())
 }
 
-fn tag_version(prefix: &str, tag: &str) -> Result<Option<u64>> {
-    let Some(number) = tag.strip_prefix(&format!("{prefix}-")) else {
+fn tag_version(prefix: &str, suffix: &str, tag: &str) -> Result<Option<u64>> {
+    let Some(value) = tag.strip_prefix(&format!("{prefix}-")) else {
         return Ok(None);
+    };
+    // Configured formats also recognize legacy integer releases during migration.
+    let number = if suffix.is_empty() {
+        value
+    } else {
+        value.strip_suffix(suffix).unwrap_or(value)
     };
     if number.is_empty()
         || number.starts_with('0')
@@ -59,7 +65,7 @@ fn tag_version(prefix: &str, tag: &str) -> Result<Option<u64>> {
         .map_err(|_| format!("Version in tag {tag} exceeds the supported integer range"))
 }
 
-fn get_version(prefix: &str, src: &str, ignore: &str) -> Result<(u64, bool)> {
+fn get_version(prefix: &str, suffix: &str, src: &str, ignore: &str) -> Result<(u64, String, bool)> {
     let pattern = format!("{prefix}-[1-9]*");
     let tags = git_checked(&["tag", "--list", "--", &pattern])?;
     let mut latest = 0;
@@ -70,10 +76,10 @@ fn get_version(prefix: &str, src: &str, ignore: &str) -> Result<(u64, bool)> {
         "--abbrev=0".to_owned(),
     ];
     for tag in tags.lines() {
-        if let Some(version) = tag_version(prefix, tag)? {
+        if let Some(version) = tag_version(prefix, suffix, tag)? {
             latest = latest.max(version);
         } else {
-            // Git's glob also matches tags like app-1-beta; only use integer releases.
+            // Git's glob also matches tags outside the configured release formats.
             describe_args.push(format!("--exclude={tag}"));
         }
     }
@@ -94,10 +100,10 @@ fn get_version(prefix: &str, src: &str, ignore: &str) -> Result<(u64, bool)> {
             diff_args.extend(excludes.iter().map(String::as_str));
             let changes = git_checked(&diff_args)?;
             if changes.is_empty() {
-                let version = tag_version(prefix, tag)?
+                let version = tag_version(prefix, suffix, tag)?
                     .ok_or_else(|| format!("Invalid release tag: {tag}"))?;
                 println!("No changes detected since {prefix}:{version} in {src}.");
-                return Ok((version, false));
+                return Ok((version, tag.to_owned(), false));
             }
             print!("{changes}");
         } else if previous.status.code() != Some(128) {
@@ -113,7 +119,7 @@ fn get_version(prefix: &str, src: &str, ignore: &str) -> Result<(u64, bool)> {
         .checked_add(1)
         .ok_or_else(|| "Next version exceeds the supported integer range".to_owned())?;
     println!("Changes detected for {prefix}. New version: {version}");
-    Ok((version, true))
+    Ok((version, format!("{prefix}-{version}{suffix}"), true))
 }
 
 fn run() -> Result<()> {
@@ -122,8 +128,18 @@ fn run() -> Result<()> {
     if prefix.is_empty() {
         return Err("Input required and not supplied: prefix".into());
     }
+    let suffix = env::var("INPUT_SUFFIX").unwrap_or_default();
+    if suffix
+        .bytes()
+        .next()
+        .is_some_and(|byte| byte.is_ascii_digit())
+    {
+        return Err(
+            "Suffix must not start with a digit: release counters must remain unambiguous".into(),
+        );
+    }
     // Also prevents special glob characters and newlines in tags and output values.
-    git_checked(&["check-ref-format", &format!("refs/tags/{prefix}-1")])?;
+    git_checked(&["check-ref-format", &format!("refs/tags/{prefix}-1{suffix}")])?;
     let src = env::var("INPUT_SRC").unwrap_or_default();
     let src = if src.trim().is_empty() {
         "."
@@ -139,7 +155,7 @@ fn run() -> Result<()> {
         .ok_or_else(|| "GITHUB_OUTPUT must point to an output file".to_owned())?;
 
     fetch_history()?;
-    let (version, has_next_version) = get_version(prefix, src, &ignore)?;
+    let (version, tag, has_next_version) = get_version(prefix, &suffix, src, &ignore)?;
     let mut output = OpenOptions::new()
         .create(true)
         .append(true)
@@ -147,7 +163,7 @@ fn run() -> Result<()> {
         .map_err(|error| format!("Could not open GITHUB_OUTPUT: {error}"))?;
     writeln!(
         output,
-        "version={version}\ntag={prefix}-{version}\nhasNextVersion={has_next_version}"
+        "version={version}\ntag={tag}\nhasNextVersion={has_next_version}"
     )
     .map_err(|error| format!("Could not write GITHUB_OUTPUT: {error}"))
 }
