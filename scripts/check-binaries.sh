@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+directory="${1:-bin}"
+
 for platform in linux-x64 linux-arm64 macos-x64 macos-arm64 windows-x64 windows-arm64; do
   suffix=''
   [[ "$platform" != windows-* ]] || suffix='.exe'
-  binary="bin/get-next-version-$platform$suffix"
+  binary="$directory/get-next-version-$platform$suffix"
   if [[ ! -s "$binary" || ! -f "$binary.source" ]]; then
     printf 'Missing packaged binary or source manifest: %s\n' "$binary" >&2
     exit 1
